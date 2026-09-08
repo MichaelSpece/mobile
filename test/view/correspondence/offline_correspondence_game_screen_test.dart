@@ -42,7 +42,8 @@ void main() {
       expect(boardRect.size, const Size.square(320.0));
       expect(find.byType(BottomBar), findsOneWidget);
       expect(find.byType(BottomBarButton), findsNWidgets(6));
-    });
+      expectGameControlsVisible(tester, find.byType(BottomBarButton));
+    }, variant: kPlatformVariant);
 
     testWidgets('Last move is highlighted when loading a game', (tester) async {
       // Regression test: interactive boards read the last move from

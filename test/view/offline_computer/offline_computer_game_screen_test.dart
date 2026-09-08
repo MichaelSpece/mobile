@@ -129,13 +129,21 @@ void main() {
         failOnOverflow: true,
       );
 
+      // Empty storage opens the new-game sheet over the injected practice state.
+      expect(find.text('Play'), findsOneWidget);
+      Navigator.of(tester.element(find.text('Play'))).pop();
+      await tester.pumpAndSettle();
+      expect(find.text('Play'), findsNothing);
+
       final boardRect = tester.getRect(find.byType(Chessboard));
       expect(boardRect.left, 0.0);
       expect(boardRect.right, _iPhone16ZoomedSurface.width);
       expect(boardRect.size, const Size.square(320.0));
       expect(find.text('Blunder'), findsOneWidget);
       expect(find.byType(BottomBar), findsOneWidget);
-    });
+      expectGameControlsVisible(tester, find.text('Blunder'));
+      expectGameControlsVisible(tester, find.byType(BottomBarButton));
+    }, variant: kPlatformVariant);
 
     testWidgets('Can play moves and move list updates', (tester) async {
       await initOfflineComputerGame(tester);

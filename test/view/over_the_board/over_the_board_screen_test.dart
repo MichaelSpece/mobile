@@ -77,7 +77,9 @@ void main() {
       expect(boardRect.size, const Size.square(320.0));
       expect(find.byType(Clock), findsNWidgets(2));
       expect(find.byType(BottomBar), findsOneWidget);
-    });
+      expectGameControlsVisible(tester, find.byType(Clock));
+      expectGameControlsVisible(tester, find.byType(BottomBarButton));
+    }, variant: kPlatformVariant);
 
     testWidgets('Checkmate and Rematch', (tester) async {
       await initOverTheBoardGame(tester, const TimeIncrement(60, 5));

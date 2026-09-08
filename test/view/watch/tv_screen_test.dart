@@ -9,6 +9,8 @@ import 'package:lichess_mobile/src/model/user/user.dart';
 import 'package:lichess_mobile/src/network/http.dart';
 import 'package:lichess_mobile/src/network/socket.dart';
 import 'package:lichess_mobile/src/view/watch/tv_screen.dart';
+import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
+import 'package:lichess_mobile/src/widgets/clock.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../example_data.dart';
@@ -78,7 +80,16 @@ void main() {
       expect(boardRect.right, _iPhone16ZoomedSurface.width);
       expect(boardRect.width, _iPhone16ZoomedSurface.width);
       expect(boardRect.height, _iPhone16ZoomedSurface.width);
-    });
+      expect(find.byType(Clock), findsNWidgets(2));
+      for (final controls in [
+        find.text('Peter'),
+        find.text('Steven'),
+        find.byType(Clock),
+        find.byType(BottomBarButton),
+      ]) {
+        expectGameControlsVisible(tester, controls);
+      }
+    }, variant: kPlatformVariant);
 
     testWidgets('loads the game and displays a non-interactive board', (tester) async {
       final app = await makeTestProviderScopeApp(

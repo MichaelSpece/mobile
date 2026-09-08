@@ -121,7 +121,15 @@ void main() {
       expect(find.text('Steven'), findsOneWidget);
       expect(find.byType(Clock), findsNWidgets(2));
       expect(find.byType(BottomBar), findsOneWidget);
-    });
+      for (final controls in [
+        find.text('Peter'),
+        find.text('Steven'),
+        find.byType(Clock),
+        find.byType(BottomBarButton),
+      ]) {
+        expectGameControlsVisible(tester, controls);
+      }
+    }, variant: kPlatformVariant);
 
     testWidgets('a game directly with initialGameId', (WidgetTester tester) async {
       final app = await makeTestProviderScopeApp(
