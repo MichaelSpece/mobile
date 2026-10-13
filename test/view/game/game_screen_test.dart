@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:chessground/chessground.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:dartchess/dartchess.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_riverpod/misc.dart' show Override, ProviderOrFamily;
@@ -746,6 +747,13 @@ void main() {
                   }
                   expectGameControlsVisible(tester, control);
                 }
+                if (correspondence) {
+                  for (final paragraph in tester.renderObjectList<RenderParagraph>(
+                    find.descendant(of: clocks, matching: find.byType(RichText)),
+                  )) {
+                    expect(paragraph.didExceedMaxLines, isFalse);
+                  }
+                }
                 expectGameControlsVisible(tester, find.byType(BottomBarButton));
                 if (pending) {
                   expect(find.text('Peter'), findsNothing);
@@ -755,6 +763,10 @@ void main() {
                   }
                   expectGameControlsVisible(tester, find.byType(ConfirmMove));
                   expectGameControlsVisible(tester, find.text('Confirm move'));
+                  final label = tester.renderObject<RenderParagraph>(
+                    find.descendant(of: find.text('Confirm move'), matching: find.byType(RichText)),
+                  );
+                  expect(label.didExceedMaxLines, isFalse);
                   expect(cancel.hitTestable(), findsOneWidget);
                   expect(accept.hitTestable(), findsOneWidget);
                   final confirmation = tester.getRect(find.byType(ConfirmMove));
