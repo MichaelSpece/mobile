@@ -565,7 +565,7 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
                   ),
                   child: RotatedBox(
                     quarterTurns: widget.topTableUpsideDown ? 2 : 0,
-                    child: widget.topTable,
+                    child: Center(heightFactor: 1, child: widget.topTable),
                   ),
                 ),
               ),
@@ -593,7 +593,7 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
                   ),
                   child: RotatedBox(
                     quarterTurns: widget.bottomTableUpsideDown ? 2 : 0,
-                    child: widget.bottomTable,
+                    child: Center(heightFactor: 1, child: widget.bottomTable),
                   ),
                 ),
               ),

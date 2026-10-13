@@ -301,11 +301,11 @@ void main() {
           ),
           topTable: ValueListenableBuilder(
             valueListenable: heights,
-            builder: (context, value, _) => SizedBox(key: topKey, height: value.$1),
+            builder: (context, value, _) => SizedBox(key: topKey, width: 96, height: value.$1),
           ),
           bottomTable: ValueListenableBuilder(
             valueListenable: heights,
-            builder: (context, value, _) => SizedBox(key: bottomKey, height: value.$2),
+            builder: (context, value, _) => SizedBox(key: bottomKey, width: 144, height: value.$2),
           ),
           userActionsBar: const SizedBox(key: actionsKey, height: 56),
         ),
@@ -316,12 +316,20 @@ void main() {
     await tester.pumpWidget(app);
     final state = tester.state(find.byType(GameLayout));
     expect(tester.getSize(find.byType(Chessboard)), const Size.square(276));
+    expect(tester.getSize(find.byKey(topKey)).width, 96);
+    expect(tester.getSize(find.byKey(bottomKey)).width, 144);
+    expect(tester.getCenter(find.byKey(topKey)).dx, 180);
+    expect(tester.getCenter(find.byKey(bottomKey)).dx, 180);
 
     heights.value = (110, 150);
     await tester.pump();
     expect(tester.state(find.byType(GameLayout)), same(state));
     final board = tester.getRect(find.byType(Chessboard));
     expect(board.size, const Size.square(140));
+    expect(tester.getSize(find.byKey(topKey)).width, 96);
+    expect(tester.getSize(find.byKey(bottomKey)).width, 144);
+    expect(tester.getCenter(find.byKey(topKey)).dx, board.center.dx);
+    expect(tester.getCenter(find.byKey(bottomKey)).dx, board.center.dx);
     expect(tester.getRect(find.byKey(topKey)).bottom, board.top);
     expect(tester.getRect(find.byKey(bottomKey)).top, board.bottom);
     expect(
