@@ -177,6 +177,7 @@ void main() {
               tester,
               heightCapped: profile.heightCapped,
               heightReserve: 196.0,
+              allowTableExpansion: textScale > 1.0,
             );
             expectGameControlsVisible(tester, find.byType(BottomBarButton));
             if (commentVisible) {

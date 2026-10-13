@@ -77,6 +77,62 @@ void _expectHorizontalInset(Rect inner, Rect outer, double inset) {
 }
 
 void main() {
+  testWidgets('portrait board yields only the space needed by changing player tables', (
+    tester,
+  ) async {
+    final heights = ValueNotifier<(double, double)>((30, 40));
+    addTearDown(heights.dispose);
+    const topKey = ValueKey('adaptive-top');
+    const bottomKey = ValueKey('adaptive-bottom');
+    const actionsKey = ValueKey('adaptive-actions');
+    final flutterTestOnError = FlutterError.onError!;
+    final app = await makeTestProviderScope(
+      tester,
+      surfaceSize: const Size(360, 456),
+      child: MaterialApp(
+        home: GameLayout(
+          orientation: Side.white,
+          boardParams: const GameBoardParams.readonly(
+            variant: Variant.standard,
+            position: Chess.initial,
+          ),
+          topTable: ValueListenableBuilder(
+            valueListenable: heights,
+            builder: (context, value, _) => SizedBox(key: topKey, height: value.$1),
+          ),
+          bottomTable: ValueListenableBuilder(
+            valueListenable: heights,
+            builder: (context, value, _) => SizedBox(key: bottomKey, height: value.$2),
+          ),
+          userActionsBar: const SizedBox(key: actionsKey, height: 56),
+        ),
+      ),
+    );
+    FlutterError.onError = flutterTestOnError;
+    addTearDown(() => FlutterError.onError = flutterTestOnError);
+    await tester.pumpWidget(app);
+    final state = tester.state(find.byType(GameLayout));
+    expect(tester.getSize(find.byType(Chessboard)), const Size.square(276));
+
+    heights.value = (110, 150);
+    await tester.pump();
+    expect(tester.state(find.byType(GameLayout)), same(state));
+    final board = tester.getRect(find.byType(Chessboard));
+    expect(board.size, const Size.square(140));
+    expect(tester.getRect(find.byKey(topKey)).bottom, board.top);
+    expect(tester.getRect(find.byKey(bottomKey)).top, board.bottom);
+    expect(
+      tester.getRect(find.byKey(bottomKey)).bottom,
+      tester.getRect(find.byKey(actionsKey)).top,
+    );
+    expect(tester.takeException(), isNull);
+
+    heights.value = (30, 40);
+    await tester.pump();
+    expect(tester.getSize(find.byType(Chessboard)), const Size.square(276));
+    expect(tester.takeException(), isNull);
+  }, variant: kPlatformVariant);
+
   testWidgets('portrait iPhone board fills the safe area width when the border is hidden', (
     WidgetTester tester,
   ) async {

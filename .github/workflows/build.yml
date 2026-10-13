@@ -55,7 +55,10 @@ jobs:
       - name: Check formatting
         run: >-
           dart format --output=none --set-exit-if-changed
+          lib/src/widgets/game_layout.dart lib/src/widgets/clock.dart
+          lib/src/view/offline_computer/offline_computer_game_screen.dart
           test/test_helpers.dart test/test_helpers_test.dart test/test_provider_scope.dart
+          test/widgets/game_layout_test.dart test/widgets/clock_test.dart
           test/view/game/game_screen_test.dart
           test/view/offline_computer/offline_computer_game_screen_test.dart
           test/view/over_the_board/over_the_board_screen_test.dart
@@ -70,6 +73,7 @@ jobs:
         run: |
           flutter test --no-pub --concurrency=1 --reporter=expanded \
             test/test_helpers_test.dart \
+            test/widgets/game_layout_test.dart test/widgets/clock_test.dart \
             test/view/game/game_screen_test.dart \
             test/view/offline_computer/offline_computer_game_screen_test.dart \
             test/view/over_the_board/over_the_board_screen_test.dart \

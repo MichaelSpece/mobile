@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:chessground/chessground.dart';
 import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
@@ -518,21 +520,30 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
           if (effectiveBoardSize > maxAllowedBoardSize) {
             effectiveBoardSize = maxAllowedBoardSize;
           }
-          return Column(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.center,
+          return CustomMultiChildLayout(
+            delegate: _PortraitLayoutDelegate(
+              maxBoardSize: effectiveBoardSize,
+              topTableFlex: widget.topTableFlex,
+              bottomTableFlex: widget.bottomTableFlex,
+            ),
             children: [
               if (boardPrefs.moveListDisplay &&
                   _hasMoveList &&
                   !isShortScreen &&
                   !(isTablet && pockets != null))
-                if (widget.zenMode)
-                  // display empty move list to keep the layout consistent in zen mode
-                  const MoveList(type: MoveListType.inline, slicedMoves: [], currentMoveIndex: 0)
-                else
-                  _moveListContent(MoveListType.inline),
-              Expanded(
-                flex: widget.topTableFlex,
+                LayoutId(
+                  id: _PortraitSlot.moves,
+                  // Keep the move list's space in zen mode.
+                  child: widget.zenMode
+                      ? const MoveList(
+                          type: MoveListType.inline,
+                          slicedMoves: [],
+                          currentMoveIndex: 0,
+                        )
+                      : _moveListContent(MoveListType.inline),
+                ),
+              LayoutId(
+                id: _PortraitSlot.top,
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: isTablet ? kTabletBoardTableSidePadding : 12.0,
@@ -540,24 +551,24 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
                   child: topTable(boardSize: effectiveBoardSize),
                 ),
               ),
-              Padding(
-                padding: isTablet
-                    ? const EdgeInsets.symmetric(horizontal: kTabletBoardTableSidePadding)
-                    : EdgeInsets.zero,
-                child: BoardWidget(
-                  size: effectiveBoardSize,
-                  orientation: widget.orientation,
-                  controller: _controller!,
-                  onMove: rawOnMove,
-                  shapes: shapes,
-                  settings: settings,
-                  boardKey: widget.boardKey,
-                  boardOverlay: widget.boardOverlay,
-                  error: widget.errorMessage,
+              LayoutId(
+                id: _PortraitSlot.board,
+                child: LayoutBuilder(
+                  builder: (context, boardConstraints) => BoardWidget(
+                    size: boardConstraints.maxWidth,
+                    orientation: widget.orientation,
+                    controller: _controller!,
+                    onMove: rawOnMove,
+                    shapes: shapes,
+                    settings: settings,
+                    boardKey: widget.boardKey,
+                    boardOverlay: widget.boardOverlay,
+                    error: widget.errorMessage,
+                  ),
                 ),
               ),
-              Expanded(
-                flex: widget.bottomTableFlex,
+              LayoutId(
+                id: _PortraitSlot.bottom,
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: isTablet ? kTabletBoardTableSidePadding : 12.0,
@@ -565,13 +576,74 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
                   child: bottomTable(boardSize: effectiveBoardSize),
                 ),
               ),
-              if (widget.userActionsBar != null) widget.userActionsBar!,
+              if (widget.userActionsBar != null)
+                LayoutId(id: _PortraitSlot.actions, child: widget.userActionsBar!),
             ],
           );
         }
       },
     );
   }
+}
+
+enum _PortraitSlot { moves, top, board, bottom, actions }
+
+/// Measures the tables first so enlarged text takes space from the board, not other controls.
+class _PortraitLayoutDelegate extends MultiChildLayoutDelegate {
+  _PortraitLayoutDelegate({
+    required this.maxBoardSize,
+    required this.topTableFlex,
+    required this.bottomTableFlex,
+  });
+
+  final double maxBoardSize;
+  final int topTableFlex;
+  final int bottomTableFlex;
+
+  @override
+  void performLayout(Size size) {
+    final tableConstraints = BoxConstraints.tightFor(width: size.width);
+    final movesHeight = hasChild(_PortraitSlot.moves)
+        ? layoutChild(_PortraitSlot.moves, tableConstraints).height
+        : 0.0;
+    final actionsHeight = hasChild(_PortraitSlot.actions)
+        ? layoutChild(_PortraitSlot.actions, tableConstraints).height
+        : 0.0;
+    final topHeight = layoutChild(_PortraitSlot.top, tableConstraints).height;
+    final bottomHeight = layoutChild(_PortraitSlot.bottom, tableConstraints).height;
+    final availableHeight = size.height - movesHeight - actionsHeight;
+    final boardSize = math.max(
+      0.0,
+      math.min(maxBoardSize, availableHeight - topHeight - bottomHeight),
+    );
+    layoutChild(_PortraitSlot.board, BoxConstraints.tight(Size.square(boardSize)));
+
+    final tableSpace = availableHeight - boardSize;
+    final topSpace = (tableSpace * topTableFlex / (topTableFlex + bottomTableFlex)).clamp(
+      topHeight,
+      math.max(topHeight, tableSpace - bottomHeight),
+    );
+    final bottomSpace = math.max(bottomHeight, tableSpace - topSpace);
+    if (hasChild(_PortraitSlot.moves)) positionChild(_PortraitSlot.moves, Offset.zero);
+    positionChild(_PortraitSlot.top, Offset(0, movesHeight + (topSpace - topHeight) / 2));
+    positionChild(
+      _PortraitSlot.board,
+      Offset((size.width - boardSize) / 2, movesHeight + topSpace),
+    );
+    positionChild(
+      _PortraitSlot.bottom,
+      Offset(0, movesHeight + topSpace + boardSize + (bottomSpace - bottomHeight) / 2),
+    );
+    if (hasChild(_PortraitSlot.actions)) {
+      positionChild(_PortraitSlot.actions, Offset(0, size.height - actionsHeight));
+    }
+  }
+
+  @override
+  bool shouldRelayout(_PortraitLayoutDelegate oldDelegate) =>
+      maxBoardSize != oldDelegate.maxBoardSize ||
+      topTableFlex != oldDelegate.topTableFlex ||
+      bottomTableFlex != oldDelegate.bottomTableFlex;
 }
 
 class const BoardSettingsOverrides({

@@ -115,12 +115,20 @@ void expectCompactBoardLayout(
   WidgetTester tester, {
   required bool heightCapped,
   double heightReserve = 180.0,
+  bool allowTableExpansion = false,
 }) {
   final layout = tester.getRect(find.byType(GameLayout));
   final board = tester.getRect(_anyBoard());
   final heightCap = layout.height - heightReserve;
   expect(heightCap < layout.width, heightCapped);
-  expect(board.size, Size.square(min(layout.width, heightCap)));
+  final maxBoardSize = min(layout.width, heightCap);
+  if (allowTableExpansion) {
+    expect(board.width, greaterThan(0));
+    expect(board.width, lessThanOrEqualTo(maxBoardSize));
+    expect(board.height, board.width);
+  } else {
+    expect(board.size, Size.square(maxBoardSize));
+  }
   expect(board.center.dx, moreOrLessEquals(layout.center.dx));
   expect(board.top, greaterThanOrEqualTo(layout.top));
   expect(board.bottom, lessThanOrEqualTo(layout.bottom));

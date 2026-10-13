@@ -718,7 +718,11 @@ void main() {
                   16.0 * textScale,
                 );
                 if (orientation == Orientation.portrait) {
-                  expectCompactBoardLayout(tester, heightCapped: profile.heightCapped);
+                  expectCompactBoardLayout(
+                    tester,
+                    heightCapped: profile.heightCapped,
+                    allowTableExpansion: textScale > 1.0,
+                  );
                 } else {
                   final layout = tester.getRect(find.byType(GameLayout));
                   final board = tester.getRect(find.byType(Chessboard));
