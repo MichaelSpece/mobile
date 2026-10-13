@@ -64,12 +64,13 @@ jobs:
           test/view/over_the_board/over_the_board_screen_test.dart
 
       - name: Analyze
+        id: analyze
         if: ${{ !cancelled() && steps.generate.outcome == 'success' }}
         run: flutter analyze --no-pub 2>&1 | tee build/validation/analyze.log
 
       - name: Focused tests
         id: focused
-        if: ${{ !cancelled() && steps.generate.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.analyze.outcome == 'success' }}
         run: |
           flutter test --no-pub --concurrency=1 --reporter=expanded \
             test/test_helpers_test.dart \
@@ -80,7 +81,7 @@ jobs:
             2>&1 | tee build/validation/focused.log
 
       - name: Render requested layouts
-        if: ${{ !cancelled() && steps.generate.outcome == 'success' && inputs.render_layouts }}
+        if: ${{ !cancelled() && steps.analyze.outcome == 'success' && inputs.render_layouts }}
         run: |
           flutter test --no-pub --concurrency=1 --reporter=expanded \
             --dart-define=LAYOUT_GOLDENS=true --update-goldens \

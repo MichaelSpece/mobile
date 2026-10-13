@@ -124,6 +124,7 @@ class const _Body({required final Variant? initialVariant, final String? initial
 
 class _BodyState() extends ConsumerState<_Body> {
   final _boardKey = GlobalKey(debugLabel: 'boardOnOfflineComputerScreen');
+  // Retain the previous practice comment when rotation or board flipping reparents the player.
   final _playerKey = GlobalKey(debugLabel: 'offlineComputerPlayer');
 
   @override

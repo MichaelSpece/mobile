@@ -648,7 +648,7 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
 
 /// Keeps player controls at their natural size and gives the move list the remaining height.
 /// Unlike an intrinsic-height column, this can measure tables containing clocks/LayoutBuilders.
-class _LandscapeTable({
+class const _LandscapeTable({
   required final double viewportHeight,
   required final double minMovesHeight,
   required super.children,
@@ -665,19 +665,25 @@ class _LandscapeTable({
   }
 }
 
+class _LandscapeTableParentData extends ContainerBoxParentData<RenderBox> {}
+
 class _RenderLandscapeTable(double viewportHeight, double minMovesHeight)
     extends RenderBox
     with
-        ContainerRenderObjectMixin<RenderBox, ContainerBoxParentData<RenderBox>>,
-        RenderBoxContainerDefaultsMixin<RenderBox, ContainerBoxParentData<RenderBox>> {
+        ContainerRenderObjectMixin<RenderBox, _LandscapeTableParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _LandscapeTableParentData> {
   double _viewportHeight = viewportHeight;
   double _minMovesHeight = minMovesHeight;
+
+  double get viewportHeight => _viewportHeight;
 
   set viewportHeight(double value) {
     if (_viewportHeight == value) return;
     _viewportHeight = value;
     markNeedsLayout();
   }
+
+  double get minMovesHeight => _minMovesHeight;
 
   set minMovesHeight(double value) {
     if (_minMovesHeight == value) return;
@@ -687,8 +693,8 @@ class _RenderLandscapeTable(double viewportHeight, double minMovesHeight)
 
   @override
   void setupParentData(RenderBox child) {
-    if (child.parentData is! ContainerBoxParentData<RenderBox>) {
-      child.parentData = ContainerBoxParentData<RenderBox>();
+    if (child.parentData is! _LandscapeTableParentData) {
+      child.parentData = _LandscapeTableParentData();
     }
   }
 
@@ -711,7 +717,7 @@ class _RenderLandscapeTable(double viewportHeight, double minMovesHeight)
     size = constraints.constrain(Size(constraints.maxWidth, tablesHeight + movesHeight));
     var y = 0.0;
     for (final child in [top, moves, actions, bottom]) {
-      (child.parentData! as ContainerBoxParentData<RenderBox>).offset = Offset(0, y);
+      (child.parentData! as _LandscapeTableParentData).offset = Offset(0, y);
       y += child.size.height;
     }
   }
