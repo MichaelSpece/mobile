@@ -82,8 +82,8 @@ void main() {
       testWidgets('compact post-startup landscape controls scroll without moving the board '
           'moves=$showMoves board=${boardPosition.name}', (tester) async {
         await prepareLayoutGolden(tester, loadFonts: true);
-        final expanded = ValueNotifier(false);
-        addTearDown(expanded.dispose);
+        final tableHeights = ValueNotifier<(double, double)>((32, 32));
+        addTearDown(tableHeights.dispose);
         const topKey = ValueKey('landscape-top-player');
         const bottomKey = ValueKey('landscape-bottom-player');
         var taps = 0;
@@ -109,18 +109,18 @@ void main() {
                 ),
                 moves: const ['e4', 'e5'],
                 topTable: ValueListenableBuilder(
-                  valueListenable: expanded,
+                  valueListenable: tableHeights,
                   builder: (_, value, _) => SizedBox(
                     key: topKey,
-                    height: value ? 100 : 32,
+                    height: value.$1,
                     child: TextButton(onPressed: () => taps++, child: const Text('Top player')),
                   ),
                 ),
                 bottomTable: ValueListenableBuilder(
-                  valueListenable: expanded,
+                  valueListenable: tableHeights,
                   builder: (_, value, _) => SizedBox(
                     key: bottomKey,
-                    height: value ? 240 : 32,
+                    height: value.$2,
                     child: TextButton(onPressed: () => taps++, child: const Text('Bottom player')),
                   ),
                 ),
@@ -146,7 +146,21 @@ void main() {
         expect(find.text('Bottom player').hitTestable(), findsOneWidget);
         await expectLayoutGolden(find.byType(GameLayout), '$capturePath-fitting');
 
-        expanded.value = true;
+        tableHeights.value = (80, 80);
+        await tester.pumpAndSettle();
+        expect(scroll.maxScrollExtent, 0);
+        if (showMoves) {
+          await tester.ensureVisible(find.text('e4'));
+          await tester.pumpAndSettle();
+          expect(find.text('e4').hitTestable(), findsOneWidget);
+        }
+        expect(find.text('Top player').hitTestable(), findsOneWidget);
+        expect(find.text('Bottom player').hitTestable(), findsOneWidget);
+        expect(tester.getRect(find.byType(Chessboard)), board);
+        expect(tester.takeException(), isNull);
+        await expectLayoutGolden(find.byType(GameLayout), '$capturePath-tight');
+
+        tableHeights.value = (100, 240);
         await tester.pumpAndSettle();
         expect(scroll.maxScrollExtent, greaterThan(0));
         expect(tester.getRect(find.byType(Chessboard)), board);
@@ -177,7 +191,7 @@ void main() {
           expect(tester.getSize(find.byType(MoveList)).height, greaterThan(0));
           expect(find.text('e4').hitTestable(), findsOneWidget);
         }
-        expanded.value = false;
+        tableHeights.value = (32, 32);
         await tester.pumpAndSettle();
         expect(scroll.maxScrollExtent, 0);
         expect(tester.getRect(find.byType(Chessboard)), board);

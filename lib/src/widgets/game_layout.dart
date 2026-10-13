@@ -494,7 +494,7 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
                       primary: false,
                       child: _LandscapeTable(
                         viewportHeight: constraints.maxHeight,
-                        minMovesHeight: showMoves ? kMinInteractiveDimension * 2 : 0,
+                        overflowMovesHeight: showMoves ? kMinInteractiveDimension * 2 : 0,
                         children: [
                           topTable(boardSize: boardSize),
                           if (showMoves)
@@ -650,30 +650,30 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
 /// Unlike an intrinsic-height column, this can measure tables containing clocks/LayoutBuilders.
 class const _LandscapeTable({
   required final double viewportHeight,
-  required final double minMovesHeight,
+  required final double overflowMovesHeight,
   required super.children,
 }) extends MultiChildRenderObjectWidget {
   @override
   RenderObject createRenderObject(BuildContext context) =>
-      _RenderLandscapeTable(viewportHeight, minMovesHeight);
+      _RenderLandscapeTable(viewportHeight, overflowMovesHeight);
 
   @override
   void updateRenderObject(BuildContext context, _RenderLandscapeTable renderObject) {
     renderObject
       ..viewportHeight = viewportHeight
-      ..minMovesHeight = minMovesHeight;
+      ..overflowMovesHeight = overflowMovesHeight;
   }
 }
 
 class _LandscapeTableParentData() extends ContainerBoxParentData<RenderBox>;
 
-class _RenderLandscapeTable(double viewportHeight, double minMovesHeight)
+class _RenderLandscapeTable(double viewportHeight, double overflowMovesHeight)
     extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, _LandscapeTableParentData>,
         RenderBoxContainerDefaultsMixin<RenderBox, _LandscapeTableParentData> {
   double _viewportHeight = viewportHeight;
-  double _minMovesHeight = minMovesHeight;
+  double _overflowMovesHeight = overflowMovesHeight;
 
   double get viewportHeight => _viewportHeight;
 
@@ -683,11 +683,11 @@ class _RenderLandscapeTable(double viewportHeight, double minMovesHeight)
     markNeedsLayout();
   }
 
-  double get minMovesHeight => _minMovesHeight;
+  double get overflowMovesHeight => _overflowMovesHeight;
 
-  set minMovesHeight(double value) {
-    if (_minMovesHeight == value) return;
-    _minMovesHeight = value;
+  set overflowMovesHeight(double value) {
+    if (_overflowMovesHeight == value) return;
+    _overflowMovesHeight = value;
     markNeedsLayout();
   }
 
@@ -709,7 +709,9 @@ class _RenderLandscapeTable(double viewportHeight, double minMovesHeight)
       child.layout(tableConstraints, parentUsesSize: true);
     }
     final tablesHeight = top.size.height + actions.size.height + bottom.size.height;
-    final movesHeight = math.max(_minMovesHeight, _viewportHeight - tablesHeight);
+    // Preserve fitting controls; reserve move-list space only if the tables already need scrolling.
+    final availableMovesHeight = _viewportHeight - tablesHeight;
+    final movesHeight = availableMovesHeight > 0 ? availableMovesHeight : _overflowMovesHeight;
     moves.layout(
       BoxConstraints.tightFor(width: constraints.maxWidth, height: movesHeight),
       parentUsesSize: true,
