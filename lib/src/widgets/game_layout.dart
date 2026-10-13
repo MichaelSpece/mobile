@@ -665,7 +665,7 @@ class const _LandscapeTable({
   }
 }
 
-class _LandscapeTableParentData extends ContainerBoxParentData<RenderBox> {}
+class _LandscapeTableParentData() extends ContainerBoxParentData<RenderBox>;
 
 class _RenderLandscapeTable(double viewportHeight, double minMovesHeight)
     extends RenderBox
