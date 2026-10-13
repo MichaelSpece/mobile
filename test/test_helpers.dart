@@ -140,16 +140,34 @@ Future<void> expectLayoutGolden(Finder screen, String path) async {
   }
 }
 
-/// Mocks a surface with a given size.
-class const TestSurface({required final Widget child, required final Size size, super.key})
-    extends StatelessWidget {
+/// Follows the test view's size, safe areas, and accessibility settings, including runtime changes.
+class const TestSurface({required final Widget child, super.key}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MediaQuery(
-      data: MediaQueryData.fromView(View.of(context)).copyWith(size: size),
-      child: SizedBox(width: size.width, height: size.height, child: child),
+    return MediaQuery.fromView(
+      view: View.of(context),
+      child: SizedBox.expand(child: child),
     );
   }
+}
+
+/// Rotates an already-mounted test app without replacing its providers or game state.
+Future<void> resizeTestSurface(
+  WidgetTester tester,
+  Size size, {
+  required EdgeInsets physicalViewPadding,
+}) async {
+  tester.view.physicalSize = size * tester.view.devicePixelRatio;
+  final padding = FakeViewPadding(
+    left: physicalViewPadding.left,
+    top: physicalViewPadding.top,
+    right: physicalViewPadding.right,
+    bottom: physicalViewPadding.bottom,
+  );
+  tester.view.padding = padding;
+  tester.view.viewPadding = padding;
+  await tester.binding.setSurfaceSize(size);
+  await tester.pump();
 }
 
 /// Mocks an http response
