@@ -34,8 +34,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 2
 
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
@@ -80,12 +78,13 @@ jobs:
         id: regression
         if: ${{ !cancelled() && steps.analyze.outcome == 'success' && inputs.verify_countdown_regression }}
         run: |
-          test "$(git rev-parse HEAD^)" = d377a8fac558a04814c7733391d4bb3360a79443
+          baseline=d377a8fac558a04814c7733391d4bb3360a79443
+          git fetch --no-tags --depth=1 origin "$baseline"
           source=lib/src/view/game/game_player.dart
           saved=$(mktemp)
           cp "$source" "$saved"
           trap 'cp "$saved" "$source"; rm -f "$saved"' EXIT
-          git show "HEAD^:$source" > "$source"
+          git show "$baseline:$source" > "$source"
           if flutter test --no-pub --concurrency=1 --reporter=expanded \
             test/view/game/move_expiration_test.dart --name 'GamePlayer responsive countdown' \
             2>&1 | tee build/validation/countdown-before.log; then
