@@ -769,38 +769,36 @@ void main() {
               await playMove(tester, 'g1', 'f3');
               checkLayout(pending: true);
               expect(container.read(controller).requireValue.moveToConfirm, isNotNull);
-              if (textScale == 1.0) {
-                final pendingMove = container.read(controller).requireValue.moveToConfirm;
-                await resizeTestSurface(
-                  tester,
-                  Size(profile.surface.height, profile.surface.width),
-                  physicalViewPadding: EdgeInsets.only(
-                    left: profile.physicalPadding.top,
-                    right: profile.physicalPadding.top,
-                    bottom: 63.0,
-                  ),
-                );
-                checkLayout(pending: true, orientation: Orientation.landscape);
-                expect(container.read(controller).requireValue.moveToConfirm, pendingMove);
-                await expectLayoutGolden(
-                  find.byType(GameScreen),
-                  '../../../build/compact-layout/confirmation-rotated-${profile.name}-$correspondence',
-                );
-                await tester.tap(cancel);
-                await tester.pump();
-                checkLayout(pending: false, orientation: Orientation.landscape);
-                expect(container.read(controller).requireValue.moveToConfirm, isNull);
-                expect(boardHasPiece(tester, Square.g1, Piece.whiteKnight), isTrue);
-                await playMove(tester, 'g1', 'f3');
-                checkLayout(pending: true, orientation: Orientation.landscape);
-                await resizeTestSurface(
-                  tester,
-                  profile.surface,
-                  physicalViewPadding: profile.physicalPadding,
-                );
-                checkLayout(pending: true);
-                expect(container.read(controller).requireValue.moveToConfirm, pendingMove);
-              }
+              final pendingMove = container.read(controller).requireValue.moveToConfirm;
+              await resizeTestSurface(
+                tester,
+                Size(profile.surface.height, profile.surface.width),
+                physicalViewPadding: EdgeInsets.only(
+                  left: profile.physicalPadding.top,
+                  right: profile.physicalPadding.top,
+                  bottom: 63.0,
+                ),
+              );
+              checkLayout(pending: true, orientation: Orientation.landscape);
+              expect(container.read(controller).requireValue.moveToConfirm, pendingMove);
+              await expectLayoutGolden(
+                find.byType(GameScreen),
+                '../../../build/compact-layout/confirmation-rotated-${profile.name}-$correspondence-$textScale',
+              );
+              await tester.tap(cancel);
+              await tester.pump();
+              checkLayout(pending: false, orientation: Orientation.landscape);
+              expect(container.read(controller).requireValue.moveToConfirm, isNull);
+              expect(boardHasPiece(tester, Square.g1, Piece.whiteKnight), isTrue);
+              await playMove(tester, 'g1', 'f3');
+              checkLayout(pending: true, orientation: Orientation.landscape);
+              await resizeTestSurface(
+                tester,
+                profile.surface,
+                physicalViewPadding: profile.physicalPadding,
+              );
+              checkLayout(pending: true);
+              expect(container.read(controller).requireValue.moveToConfirm, pendingMove);
               await expectLayoutGolden(
                 find.byType(GameScreen),
                 '../../../build/compact-layout/confirmation-${profile.name}-$correspondence-$textScale',

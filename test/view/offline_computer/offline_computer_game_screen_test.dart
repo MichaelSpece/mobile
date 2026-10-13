@@ -32,6 +32,7 @@ import 'package:lichess_mobile/src/utils/navigation.dart';
 import 'package:lichess_mobile/src/view/offline_computer/offline_computer_game_screen.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
 import 'package:lichess_mobile/src/widgets/clock.dart';
+import 'package:lichess_mobile/src/widgets/game_layout.dart';
 import 'package:lichess_mobile/src/widgets/move_list.dart';
 import 'package:lichess_mobile/src/widgets/pockets.dart';
 import 'package:lichess_mobile/src/widgets/settings.dart';
@@ -166,19 +167,41 @@ void main() {
           tester.platformDispatcher.textScaleFactorTestValue = textScale;
           addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
           await tester.pump();
+          final container = ProviderScope.containerOf(tester.element(find.byType(Chessboard)));
+          final layoutState = tester.state(find.byType(GameLayout));
 
-          void checkLayout({required bool commentVisible}) {
+          void checkLayout({
+            required bool commentVisible,
+            Orientation orientation = Orientation.portrait,
+          }) {
+            expect(tester.state(find.byType(GameLayout)), same(layoutState));
+            expect(
+              container.read(offlineComputerGameControllerProvider.notifier),
+              same(controller),
+            );
+            expect(MediaQuery.orientationOf(tester.element(find.byType(GameLayout))), orientation);
             expect(
               MediaQuery.textScalerOf(tester.element(find.byType(OfflineComputerGameScreen)))
                   .scale(16.0),
               16.0 * textScale,
             );
-            expectCompactBoardLayout(
-              tester,
-              heightCapped: profile.heightCapped,
-              heightReserve: 196.0,
-              allowTableExpansion: textScale > 1.0,
-            );
+            if (orientation == Orientation.portrait) {
+              expectCompactBoardLayout(
+                tester,
+                heightCapped: profile.heightCapped,
+                heightReserve: 196.0,
+                allowTableExpansion: textScale > 1.0,
+              );
+            } else {
+              final layout = tester.getRect(find.byType(GameLayout));
+              final board = tester.getRect(find.byType(Chessboard));
+              expect(board.width, board.height);
+              expect(board.width, greaterThan(0));
+              expect(board.left, greaterThanOrEqualTo(layout.left));
+              expect(board.right, lessThanOrEqualTo(layout.right));
+              expect(board.top, greaterThanOrEqualTo(layout.top));
+              expect(board.bottom, lessThanOrEqualTo(layout.bottom));
+            }
             expectGameControlsVisible(tester, find.byType(BottomBarButton));
             if (commentVisible) {
               final card = tester.getRect(
@@ -237,9 +260,48 @@ void main() {
           await tester.pump();
           expect(controller.testState.showingSuggestedMove, isNull);
 
-          controller.testState = evaluatingState;
-          await tester.pumpAndSettle();
-          checkLayout(commentVisible: true);
+          for (final evaluating in [false, true]) {
+            controller.testState = evaluating ? evaluatingState : commentState;
+            await tester.pumpAndSettle();
+            checkLayout(commentVisible: true);
+            final steps = controller.testState.game.steps;
+            for (final orientation in [Orientation.landscape, Orientation.portrait]) {
+              await resizeTestSurface(
+                tester,
+                orientation == Orientation.portrait
+                    ? profile.surface
+                    : Size(profile.surface.height, profile.surface.width),
+                physicalViewPadding: orientation == Orientation.portrait
+                    ? profile.physicalPadding
+                    : EdgeInsets.only(
+                        left: profile.physicalPadding.top,
+                        right: profile.physicalPadding.top,
+                        bottom: 63.0,
+                      ),
+              );
+              await tester.pumpAndSettle();
+              checkLayout(commentVisible: true, orientation: orientation);
+              expect(controller.testState.game.steps, same(steps));
+              expect(controller.testState.stepCursor, commentState.stepCursor);
+              expect(controller.testState.isEvaluatingMove, evaluating);
+              expect(
+                controller.testState.practiceComment,
+                evaluating ? isNull : commentState.practiceComment,
+              );
+              await expectLayoutGolden(
+                find.byType(OfflineComputerGameScreen),
+                '../../../build/compact-layout/practice-${evaluating ? 'evaluating' : 'feedback'}-${orientation.name}-${profile.name}-$textScale',
+              );
+              expect(suggestedMove.hitTestable(), findsOneWidget);
+              await tester.tap(suggestedMove);
+              await tester.pump();
+              expect(controller.testState.showingSuggestedMove, suggestion);
+              checkLayout(commentVisible: true, orientation: orientation);
+              await tester.tap(suggestedMove);
+              await tester.pump();
+              expect(controller.testState.showingSuggestedMove, isNull);
+            }
+          }
           controller.testState = evaluatingState.copyWith(isEvaluatingMove: false);
           await tester.pumpAndSettle();
           checkLayout(commentVisible: false);
