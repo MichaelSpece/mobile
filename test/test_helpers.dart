@@ -58,15 +58,56 @@ const kCompactPortraitProfiles = [
   ),
 ];
 
-/// Allows game state transitions that toggle the native wakelock in a widget test.
-void mockWakelock() {
+/// Allows board focus transitions without native wakelock or Android platform services.
+void mockBoardPlatformChannels() {
   const channel = 'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle';
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(const MethodChannel('dev.fluttercommunity.plus/device_info'), (
+    call,
+  ) async {
+    expect(call.method, 'getDeviceInfo');
+    return {
+      'version': {'sdkInt': 35, 'release': '15', 'codename': 'REL', 'incremental': 'test'},
+      for (final field in [
+        'board',
+        'bootloader',
+        'brand',
+        'device',
+        'display',
+        'fingerprint',
+        'hardware',
+        'host',
+        'id',
+        'manufacturer',
+        'model',
+        'product',
+        'tags',
+        'type',
+      ])
+        field: 'test',
+      for (final field in [
+        'time',
+        'freeDiskSize',
+        'totalDiskSize',
+        'physicalRamSize',
+        'availableRamSize',
+      ])
+        field: 0,
+      'isPhysicalDevice': false,
+      'isLowRamDevice': false,
+    };
+  });
+  messenger.setMockMethodCallHandler(const MethodChannel('mobile.lichess.org/gestures_exclusion'), (
+    call,
+  ) async {
+    expect(call.method, 'setSystemGestureExclusionRects');
+    return null;
+  });
   messenger.setMockMessageHandler(
     channel,
     (_) async => const StandardMessageCodec().encodeMessage([null]),
   );
-  // Keep the handler through framework disposal, which can send a final toggle.
+  // Keep handlers through framework disposal, which can send final focus-loss messages.
 }
 
 /// Checks width-filling or height-capped sizing in a portrait phone game layout.

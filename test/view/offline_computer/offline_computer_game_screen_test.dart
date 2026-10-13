@@ -134,7 +134,7 @@ void main() {
         testWidgets('compact post-startup practice feedback ${profile.name} textScale=$textScale', (
           tester,
         ) async {
-          mockWakelock();
+          mockBoardPlatformChannels();
           await prepareLayoutGolden(tester, loadFonts: true);
           final suggestion = Move.parse('d2d4')! as NormalMove;
           final commentState = _stateWithPracticeComment(

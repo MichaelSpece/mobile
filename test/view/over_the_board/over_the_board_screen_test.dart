@@ -146,7 +146,7 @@ void main() {
 
     for (final profile in kCompactPortraitProfiles) {
       testWidgets('compact active game survives rotation ${profile.name}', (tester) async {
-        mockWakelock();
+        mockBoardPlatformChannels();
         await prepareLayoutGolden(tester);
         await initOverTheBoardGame(
           tester,

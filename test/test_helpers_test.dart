@@ -1,12 +1,24 @@
 import 'package:chessground/chessground.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lichess_mobile/src/utils/gestures_exclusion.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'test_helpers.dart';
 
 void main() {
+  testWidgets('board platform mocks handle focus loss', (tester) async {
+    mockBoardPlatformChannels();
+    await tester.runAsync(() async {
+      await WakelockPlus.enable();
+      await WakelockPlus.disable();
+      await clearAndroidBoardGesturesExclusion();
+    });
+    expect(tester.takeException(), isNull);
+  }, variant: kPlatformVariant);
+
   testWidgets('TestSurface preserves the simulated view metrics', (tester) async {
     tester.view.devicePixelRatio = 3.0;
     tester.view.physicalSize = const Size(960.0, 2079.0);
