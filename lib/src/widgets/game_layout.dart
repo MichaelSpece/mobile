@@ -613,16 +613,19 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
                         horizontal: isTablet ? kTabletBoardTableSidePadding : 12.0,
                       ),
                       child: LayoutBuilder(
-                        builder: (context, pocketConstraints) => RotatedBox(
-                          quarterTurns: upsideDown ? 2 : 0,
-                          child: PocketsMenu(
-                            side: side,
-                            sideToMove: sideToMove,
-                            playerSide: playerSide,
-                            pockets: pockets,
-                            squareSize: pocketConstraints.maxHeight - PocketsMenu.padding.vertical,
-                            isUpsideDown: upsideDown,
-                            premoveDropRole: premoveDropRole,
+                        builder: (context, pocketConstraints) => Center(
+                          child: RotatedBox(
+                            quarterTurns: upsideDown ? 2 : 0,
+                            child: PocketsMenu(
+                              side: side,
+                              sideToMove: sideToMove,
+                              playerSide: playerSide,
+                              pockets: pockets,
+                              squareSize:
+                                  pocketConstraints.maxHeight - PocketsMenu.padding.vertical,
+                              isUpsideDown: upsideDown,
+                              premoveDropRole: premoveDropRole,
+                            ),
                           ),
                         ),
                       ),

@@ -170,6 +170,13 @@ void main() {
             for (final menu in tester.widgetList<PocketsMenu>(menus)) {
               expect(menu.squareSize, moreOrLessEquals(squareSize));
               expect(menu.isUpsideDown, upsideDown);
+              expect(
+                tester.getSize(find.byWidget(menu)).width,
+                moreOrLessEquals(5 * squareSize + 16),
+              );
+              if (portrait) {
+                expect(tester.getCenter(find.byWidget(menu)).dx, moreOrLessEquals(board.center.dx));
+              }
             }
             final pieces = find.descendant(of: menus, matching: find.byType(PieceWidget));
             expect(pieces, findsNWidgets(10));
