@@ -59,19 +59,14 @@ const kCompactPortraitProfiles = [
 ];
 
 /// Allows game state transitions that toggle the native wakelock in a widget test.
-void mockWakelock(WidgetTester tester) {
+void mockWakelock() {
   const channel = 'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle';
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   messenger.setMockMessageHandler(
     channel,
     (_) async => const StandardMessageCodec().encodeMessage([null]),
   );
-  addTearDown(() async {
-    // Dispose focus listeners while the native channel is still mocked.
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    messenger.setMockMessageHandler(channel, null);
-  });
+  // Keep the handler through framework disposal, which can send a final toggle.
 }
 
 /// Checks width-filling or height-capped sizing in a portrait phone game layout.

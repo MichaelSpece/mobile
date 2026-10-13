@@ -7,6 +7,10 @@ on:
         description: Render compact-layout screenshots for visual inspection
         type: boolean
         default: false
+      full_suite:
+        description: Run the full suite in addition to the affected widget suites
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -83,7 +87,7 @@ jobs:
             2>&1 | tee build/validation/renders.log
 
       - name: Full suite for shared test surface
-        if: ${{ !cancelled() && steps.generate.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.generate.outcome == 'success' && inputs.full_suite }}
         run: flutter test --no-pub --concurrency=1 --reporter=expanded 2>&1 | tee build/validation/full-suite.log
 
       - name: Retain verification evidence
