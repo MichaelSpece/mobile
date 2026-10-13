@@ -303,6 +303,9 @@ void main() {
               await tester.tap(suggestedMove);
               await tester.pump();
               expect(controller.testState.showingSuggestedMove, suggestion);
+              await tester.pump(const Duration(milliseconds: 100));
+              await tester.pumpAndSettle();
+              expect(suggestedMove.hitTestable(), findsOneWidget);
               await checkLayout(commentVisible: true, orientation: orientation);
               await tester.tap(suggestedMove);
               await tester.pump();

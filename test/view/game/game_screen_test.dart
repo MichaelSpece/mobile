@@ -799,6 +799,10 @@ void main() {
               );
               await checkLayout(pending: true, orientation: Orientation.landscape);
               expect(container.read(controller).requireValue.moveToConfirm, pendingMove);
+              await tester.pump(const Duration(milliseconds: 100));
+              await tester.pumpAndSettle();
+              expect(cancel.hitTestable(), findsOneWidget);
+              expect(accept.hitTestable(), findsOneWidget);
               await expectLayoutGolden(
                 find.byType(GameScreen),
                 '../../../build/compact-layout/confirmation-rotated-${profile.name}-$correspondence-$textScale',
