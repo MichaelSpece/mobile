@@ -77,6 +77,50 @@ void _expectHorizontalInset(Rect inner, Rect outer, double inset) {
 }
 
 void main() {
+  testWidgets('adaptive crazyhouse pockets follow the resized board', (tester) async {
+    final heights = ValueNotifier<(double, double)>((30, 40));
+    addTearDown(heights.dispose);
+    final flutterTestOnError = FlutterError.onError!;
+    final app = await makeTestProviderScope(
+      tester,
+      surfaceSize: const Size(360, 560),
+      child: MaterialApp(
+        home: GameLayout(
+          orientation: Side.white,
+          boardParams: const GameBoardParams.readonly(
+            variant: Variant.crazyhouse,
+            position: Crazyhouse.initial,
+          ),
+          topTable: ValueListenableBuilder(
+            valueListenable: heights,
+            builder: (context, value, _) => SizedBox(height: value.$1),
+          ),
+          bottomTable: ValueListenableBuilder(
+            valueListenable: heights,
+            builder: (context, value, _) => SizedBox(height: value.$2),
+          ),
+          userActionsBar: const SizedBox(height: 56),
+        ),
+      ),
+    );
+    FlutterError.onError = flutterTestOnError;
+    addTearDown(() => FlutterError.onError = flutterTestOnError);
+    await tester.pumpWidget(app);
+    final initialWidth = tester.getSize(find.byType(Chessboard)).width;
+    for (final pockets in tester.widgetList<PocketsMenu>(find.byType(PocketsMenu))) {
+      expect(pockets.squareSize, moreOrLessEquals(initialWidth / 8));
+    }
+
+    heights.value = (110, 150);
+    await tester.pump();
+    final boardWidth = tester.getSize(find.byType(Chessboard)).width;
+    expect(boardWidth, lessThan(initialWidth));
+    expect(tester.takeException(), isNull);
+    for (final pockets in tester.widgetList<PocketsMenu>(find.byType(PocketsMenu))) {
+      expect(pockets.squareSize, moreOrLessEquals(boardWidth / 8));
+    }
+  }, variant: kPlatformVariant);
+
   testWidgets('portrait board yields only the space needed by changing player tables', (
     tester,
   ) async {
