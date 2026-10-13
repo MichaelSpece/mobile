@@ -4,6 +4,7 @@ import 'package:chessground/chessground.dart';
 import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/constants.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
@@ -464,6 +465,7 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
                           PocketsMenu.padding.horizontal) /
                       (1 + pocketWidthRatio),
                 );
+          final showMoves = boardPrefs.moveListDisplay && !widget.zenMode && _hasMoveList;
 
           return Padding(
             padding: const EdgeInsets.all(kTabletBoardTableSidePadding),
@@ -487,29 +489,32 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
                 ),
                 const SizedBox(width: boardTableGap),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      topTable(boardSize: boardSize),
-                      if (boardPrefs.moveListDisplay && !widget.zenMode && _hasMoveList)
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 16.0),
-                            child: _moveListContent(MoveListType.stacked),
-                          ),
-                        )
-                      else
-                        const Spacer(),
-
-                      if (widget.userActionsBar != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: widget.userActionsBar,
-                        ),
-
-                      bottomTable(boardSize: boardSize),
-                    ],
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      primary: false,
+                      child: _LandscapeTable(
+                        viewportHeight: constraints.maxHeight,
+                        minMovesHeight: showMoves ? kMinInteractiveDimension * 2 : 0,
+                        children: [
+                          topTable(boardSize: boardSize),
+                          if (showMoves)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16.0),
+                              child: _moveListContent(MoveListType.stacked),
+                            )
+                          else
+                            const SizedBox.shrink(),
+                          if (widget.userActionsBar != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: widget.userActionsBar,
+                            )
+                          else
+                            const SizedBox.shrink(),
+                          bottomTable(boardSize: boardSize),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -639,6 +644,84 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
       },
     );
   }
+}
+
+/// Keeps player controls at their natural size and gives the move list the remaining height.
+/// Unlike an intrinsic-height column, this can measure tables containing clocks/LayoutBuilders.
+class _LandscapeTable({
+  required final double viewportHeight,
+  required final double minMovesHeight,
+  required super.children,
+}) extends MultiChildRenderObjectWidget {
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderLandscapeTable(viewportHeight, minMovesHeight);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderLandscapeTable renderObject) {
+    renderObject
+      ..viewportHeight = viewportHeight
+      ..minMovesHeight = minMovesHeight;
+  }
+}
+
+class _RenderLandscapeTable(double viewportHeight, double minMovesHeight)
+    extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, ContainerBoxParentData<RenderBox>>,
+        RenderBoxContainerDefaultsMixin<RenderBox, ContainerBoxParentData<RenderBox>> {
+  double _viewportHeight = viewportHeight;
+  double _minMovesHeight = minMovesHeight;
+
+  set viewportHeight(double value) {
+    if (_viewportHeight == value) return;
+    _viewportHeight = value;
+    markNeedsLayout();
+  }
+
+  set minMovesHeight(double value) {
+    if (_minMovesHeight == value) return;
+    _minMovesHeight = value;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! ContainerBoxParentData<RenderBox>) {
+      child.parentData = ContainerBoxParentData<RenderBox>();
+    }
+  }
+
+  @override
+  void performLayout() {
+    final top = firstChild!;
+    final moves = childAfter(top)!;
+    final actions = childAfter(moves)!;
+    final bottom = childAfter(actions)!;
+    final tableConstraints = BoxConstraints.tightFor(width: constraints.maxWidth);
+    for (final child in [top, actions, bottom]) {
+      child.layout(tableConstraints, parentUsesSize: true);
+    }
+    final tablesHeight = top.size.height + actions.size.height + bottom.size.height;
+    final movesHeight = math.max(_minMovesHeight, _viewportHeight - tablesHeight);
+    moves.layout(
+      BoxConstraints.tightFor(width: constraints.maxWidth, height: movesHeight),
+      parentUsesSize: true,
+    );
+    size = constraints.constrain(Size(constraints.maxWidth, tablesHeight + movesHeight));
+    var y = 0.0;
+    for (final child in [top, moves, actions, bottom]) {
+      (child.parentData! as ContainerBoxParentData<RenderBox>).offset = Offset(0, y);
+      y += child.size.height;
+    }
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) => defaultPaint(context, offset);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
 }
 
 enum _PortraitSlot() {

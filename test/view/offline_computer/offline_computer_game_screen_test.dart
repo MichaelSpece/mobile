@@ -170,10 +170,10 @@ void main() {
           final container = ProviderScope.containerOf(tester.element(find.byType(Chessboard)));
           final layoutState = tester.state(find.byType(GameLayout));
 
-          void checkLayout({
+          Future<void> checkLayout({
             required bool commentVisible,
             Orientation orientation = Orientation.portrait,
-          }) {
+          }) async {
             expect(tester.state(find.byType(GameLayout)), same(layoutState));
             expect(
               container.read(offlineComputerGameControllerProvider.notifier),
@@ -202,11 +202,18 @@ void main() {
               expect(board.top, greaterThanOrEqualTo(layout.top));
               expect(board.bottom, lessThanOrEqualTo(layout.bottom));
             }
+            if (orientation == Orientation.landscape) {
+              await tester.ensureVisible(find.byType(BottomBarButton).first);
+              await tester.pump();
+            }
             expectGameControlsVisible(tester, find.byType(BottomBarButton));
             if (commentVisible) {
-              final card = tester.getRect(
-                find.byWidget(_findCommentCardContainer(tester, Icons.info)),
-              );
+              final cardFinder = find.byWidget(_findCommentCardContainer(tester, Icons.info));
+              if (orientation == Orientation.landscape) {
+                await tester.ensureVisible(cardFinder);
+                await tester.pump();
+              }
+              final card = tester.getRect(cardFinder);
               for (final control in [
                 find.text("Good move, but there's better"),
                 find.text('+0.3'),
@@ -237,14 +244,14 @@ void main() {
             find.byType(OfflineComputerGameScreen),
             '../../../build/compact-layout/practice-initial-${profile.name}-$textScale',
           );
-          checkLayout(commentVisible: false);
+          await checkLayout(commentVisible: false);
           controller.testState = commentState;
           await tester.pumpAndSettle();
           await expectLayoutGolden(
             find.byType(OfflineComputerGameScreen),
             '../../../build/compact-layout/practice-feedback-${profile.name}-$textScale',
           );
-          checkLayout(commentVisible: true);
+          await checkLayout(commentVisible: true);
           await tester.longPress(find.text("Good move, but there's better"));
           await tester.pumpAndSettle();
           expect(find.text("Good move, but there's better", findRichText: true), findsNWidgets(2));
@@ -255,7 +262,7 @@ void main() {
           await tester.tap(suggestedMove);
           await tester.pump();
           expect(controller.testState.showingSuggestedMove, suggestion);
-          checkLayout(commentVisible: true);
+          await checkLayout(commentVisible: true);
           await tester.tap(suggestedMove);
           await tester.pump();
           expect(controller.testState.showingSuggestedMove, isNull);
@@ -263,7 +270,7 @@ void main() {
           for (final evaluating in [false, true]) {
             controller.testState = evaluating ? evaluatingState : commentState;
             await tester.pumpAndSettle();
-            checkLayout(commentVisible: true);
+            await checkLayout(commentVisible: true);
             final steps = controller.testState.game.steps;
             for (final orientation in [Orientation.landscape, Orientation.portrait]) {
               await resizeTestSurface(
@@ -280,7 +287,7 @@ void main() {
                       ),
               );
               await tester.pumpAndSettle();
-              checkLayout(commentVisible: true, orientation: orientation);
+              await checkLayout(commentVisible: true, orientation: orientation);
               expect(controller.testState.game.steps, same(steps));
               expect(controller.testState.stepCursor, commentState.stepCursor);
               expect(controller.testState.isEvaluatingMove, evaluating);
@@ -296,7 +303,7 @@ void main() {
               await tester.tap(suggestedMove);
               await tester.pump();
               expect(controller.testState.showingSuggestedMove, suggestion);
-              checkLayout(commentVisible: true, orientation: orientation);
+              await checkLayout(commentVisible: true, orientation: orientation);
               await tester.tap(suggestedMove);
               await tester.pump();
               expect(controller.testState.showingSuggestedMove, isNull);
@@ -304,7 +311,7 @@ void main() {
           }
           controller.testState = evaluatingState.copyWith(isEvaluatingMove: false);
           await tester.pumpAndSettle();
-          checkLayout(commentVisible: false);
+          await checkLayout(commentVisible: false);
           await expectLayoutGolden(
             find.byType(OfflineComputerGameScreen),
             '../../../build/compact-layout/practice-cleared-${profile.name}-$textScale',
