@@ -525,6 +525,7 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
               maxBoardSize: effectiveBoardSize,
               topTableFlex: widget.topTableFlex,
               bottomTableFlex: widget.bottomTableFlex,
+              pocketSquareRatio: pocketSquareSize(boardSize: 1, isTablet: isTablet),
             ),
             children: [
               if (boardPrefs.moveListDisplay &&
@@ -548,7 +549,10 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
                   padding: EdgeInsets.symmetric(
                     horizontal: isTablet ? kTabletBoardTableSidePadding : 12.0,
                   ),
-                  child: topTable(boardSize: effectiveBoardSize),
+                  child: RotatedBox(
+                    quarterTurns: widget.topTableUpsideDown ? 2 : 0,
+                    child: widget.topTable,
+                  ),
                 ),
               ),
               LayoutId(
@@ -573,9 +577,43 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
                   padding: EdgeInsets.symmetric(
                     horizontal: isTablet ? kTabletBoardTableSidePadding : 12.0,
                   ),
-                  child: bottomTable(boardSize: effectiveBoardSize),
+                  child: RotatedBox(
+                    quarterTurns: widget.bottomTableUpsideDown ? 2 : 0,
+                    child: widget.bottomTable,
+                  ),
                 ),
               ),
+              if (pockets != null)
+                for (final (slot, side, upsideDown) in [
+                  (
+                    _PortraitSlot.topPockets,
+                    widget.orientation.opposite,
+                    widget.topTableUpsideDown,
+                  ),
+                  (_PortraitSlot.bottomPockets, widget.orientation, widget.bottomTableUpsideDown),
+                ])
+                  LayoutId(
+                    id: slot,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isTablet ? kTabletBoardTableSidePadding : 12.0,
+                      ),
+                      child: LayoutBuilder(
+                        builder: (context, pocketConstraints) => RotatedBox(
+                          quarterTurns: upsideDown ? 2 : 0,
+                          child: PocketsMenu(
+                            side: side,
+                            sideToMove: sideToMove,
+                            playerSide: playerSide,
+                            pockets: pockets,
+                            squareSize: pocketConstraints.maxHeight - PocketsMenu.padding.vertical,
+                            isUpsideDown: upsideDown,
+                            premoveDropRole: premoveDropRole,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               if (widget.userActionsBar != null)
                 LayoutId(id: _PortraitSlot.actions, child: widget.userActionsBar!),
             ],
@@ -588,9 +626,11 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
 
 enum _PortraitSlot() {
   moves,
+  topPockets,
   top,
   board,
   bottom,
+  bottomPockets,
   actions,
 }
 
@@ -599,6 +639,7 @@ class _PortraitLayoutDelegate({
   required final double maxBoardSize,
   required final int topTableFlex,
   required final int bottomTableFlex,
+  required final double pocketSquareRatio,
 }) extends MultiChildLayoutDelegate {
   @override
   void performLayout(Size size) {
@@ -609,14 +650,31 @@ class _PortraitLayoutDelegate({
     final actionsHeight = hasChild(_PortraitSlot.actions)
         ? layoutChild(_PortraitSlot.actions, tableConstraints).height
         : 0.0;
-    final topHeight = layoutChild(_PortraitSlot.top, tableConstraints).height;
-    final bottomHeight = layoutChild(_PortraitSlot.bottom, tableConstraints).height;
+    final topPlayerHeight = layoutChild(_PortraitSlot.top, tableConstraints).height;
+    final bottomPlayerHeight = layoutChild(_PortraitSlot.bottom, tableConstraints).height;
     final availableHeight = size.height - movesHeight - actionsHeight;
+    final hasPockets = hasChild(_PortraitSlot.topPockets);
+    // Each pocket row grows with the board, so solve all three heights before laying them out.
+    final pocketsPadding = hasPockets ? 2 * PocketsMenu.padding.vertical : 0.0;
     final boardSize = math.max(
       0.0,
-      math.min(maxBoardSize, availableHeight - topHeight - bottomHeight),
+      math.min(
+        maxBoardSize,
+        (availableHeight - topPlayerHeight - bottomPlayerHeight - pocketsPadding) /
+            (1 + (hasPockets ? 2 * pocketSquareRatio : 0)),
+      ),
     );
     layoutChild(_PortraitSlot.board, BoxConstraints.tight(Size.square(boardSize)));
+    final pocketHeight = hasPockets
+        ? boardSize * pocketSquareRatio + PocketsMenu.padding.vertical
+        : 0.0;
+    if (hasPockets) {
+      final pocketConstraints = BoxConstraints.tightFor(width: size.width, height: pocketHeight);
+      layoutChild(_PortraitSlot.topPockets, pocketConstraints);
+      layoutChild(_PortraitSlot.bottomPockets, pocketConstraints);
+    }
+    final topHeight = topPlayerHeight + pocketHeight;
+    final bottomHeight = bottomPlayerHeight + pocketHeight;
 
     final tableSpace = availableHeight - boardSize;
     final topSpace = (tableSpace * topTableFlex / (topTableFlex + bottomTableFlex)).clamp(
@@ -624,16 +682,19 @@ class _PortraitLayoutDelegate({
       math.max(topHeight, tableSpace - bottomHeight),
     );
     final bottomSpace = math.max(bottomHeight, tableSpace - topSpace);
+    final topY = movesHeight + (topSpace - topHeight) / 2;
+    final bottomY = movesHeight + topSpace + boardSize + (bottomSpace - bottomHeight) / 2;
     if (hasChild(_PortraitSlot.moves)) positionChild(_PortraitSlot.moves, Offset.zero);
-    positionChild(_PortraitSlot.top, Offset(0, movesHeight + (topSpace - topHeight) / 2));
+    positionChild(_PortraitSlot.top, Offset(0, topY + pocketHeight));
     positionChild(
       _PortraitSlot.board,
       Offset((size.width - boardSize) / 2, movesHeight + topSpace),
     );
-    positionChild(
-      _PortraitSlot.bottom,
-      Offset(0, movesHeight + topSpace + boardSize + (bottomSpace - bottomHeight) / 2),
-    );
+    positionChild(_PortraitSlot.bottom, Offset(0, bottomY));
+    if (hasPockets) {
+      positionChild(_PortraitSlot.topPockets, Offset(0, topY));
+      positionChild(_PortraitSlot.bottomPockets, Offset(0, bottomY + bottomPlayerHeight));
+    }
     if (hasChild(_PortraitSlot.actions)) {
       positionChild(_PortraitSlot.actions, Offset(0, size.height - actionsHeight));
     }
@@ -643,7 +704,8 @@ class _PortraitLayoutDelegate({
   bool shouldRelayout(_PortraitLayoutDelegate oldDelegate) =>
       maxBoardSize != oldDelegate.maxBoardSize ||
       topTableFlex != oldDelegate.topTableFlex ||
-      bottomTableFlex != oldDelegate.bottomTableFlex;
+      bottomTableFlex != oldDelegate.bottomTableFlex ||
+      pocketSquareRatio != oldDelegate.pocketSquareRatio;
 }
 
 class const BoardSettingsOverrides({
