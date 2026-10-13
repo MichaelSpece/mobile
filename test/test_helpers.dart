@@ -59,14 +59,19 @@ const kCompactPortraitProfiles = [
 ];
 
 /// Allows game state transitions that toggle the native wakelock in a widget test.
-void mockWakelock() {
+void mockWakelock(WidgetTester tester) {
   const channel = 'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle';
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   messenger.setMockMessageHandler(
     channel,
     (_) async => const StandardMessageCodec().encodeMessage([null]),
   );
-  addTearDown(() => messenger.setMockMessageHandler(channel, null));
+  addTearDown(() async {
+    // Dispose focus listeners while the native channel is still mocked.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    messenger.setMockMessageHandler(channel, null);
+  });
 }
 
 /// Checks width-filling or height-capped sizing in a portrait phone game layout.
@@ -119,12 +124,15 @@ Future<void> _loadLayoutGoldenFonts() async {
   }
 }
 
-/// Preloads fonts and pieces before building a game for opt-in visual captures.
-Future<void> prepareLayoutGolden(WidgetTester tester) async {
-  if (const bool.fromEnvironment('LAYOUT_GOLDENS')) {
+/// Uses real fonts for size-sensitive assertions and preloads pieces for opt-in visual captures.
+Future<void> prepareLayoutGolden(WidgetTester tester, {bool loadFonts = false}) async {
+  const render = bool.fromEnvironment('LAYOUT_GOLDENS');
+  if (loadFonts || render) {
     await tester.runAsync(() async {
       await (_layoutGoldenFonts ??= _loadLayoutGoldenFonts());
-      await ChessgroundImages.instance.loadAll(PieceSet.cburnett.assets, devicePixelRatio: 3.0);
+      if (render) {
+        await ChessgroundImages.instance.loadAll(PieceSet.cburnett.assets, devicePixelRatio: 3.0);
+      }
     });
   }
 }

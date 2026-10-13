@@ -658,10 +658,10 @@ void main() {
           testWidgets(
             'compact post-startup confirmation ${profile.name} correspondence=$correspondence textScale=$textScale',
             (tester) async {
-              mockWakelock();
+              mockWakelock(tester);
               tester.platformDispatcher.textScaleFactorTestValue = textScale;
               addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-              await prepareLayoutGolden(tester);
+              await prepareLayoutGolden(tester, loadFonts: true);
               await createTestGame(
                 tester,
                 pgn: 'e4 e5',
@@ -750,6 +750,10 @@ void main() {
                 expect(tester.takeException(), isNull);
               }
 
+              await expectLayoutGolden(
+                find.byType(GameScreen),
+                '../../../build/compact-layout/confirmation-initial-${profile.name}-$correspondence-$textScale',
+              );
               checkLayout(pending: false);
               if (correspondence) {
                 expect(find.text('One day', findRichText: true), findsOneWidget);

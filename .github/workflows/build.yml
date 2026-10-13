@@ -83,7 +83,7 @@ jobs:
             2>&1 | tee build/validation/renders.log
 
       - name: Full suite for shared test surface
-        if: ${{ !cancelled() && steps.focused.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.generate.outcome == 'success' }}
         run: flutter test --no-pub --concurrency=1 --reporter=expanded 2>&1 | tee build/validation/full-suite.log
 
       - name: Retain verification evidence

@@ -134,8 +134,8 @@ void main() {
         testWidgets('compact post-startup practice feedback ${profile.name} textScale=$textScale', (
           tester,
         ) async {
-          mockWakelock();
-          await prepareLayoutGolden(tester);
+          mockWakelock(tester);
+          await prepareLayoutGolden(tester, loadFonts: true);
           final suggestion = Move.parse('d2d4')! as NormalMove;
           final commentState = _stateWithPracticeComment(
             PracticeComment(
@@ -209,14 +209,18 @@ void main() {
             expect(tester.takeException(), isNull);
           }
 
+          await expectLayoutGolden(
+            find.byType(OfflineComputerGameScreen),
+            '../../../build/compact-layout/practice-initial-${profile.name}-$textScale',
+          );
           checkLayout(commentVisible: false);
           controller.testState = commentState;
           await tester.pumpAndSettle();
-          checkLayout(commentVisible: true);
           await expectLayoutGolden(
             find.byType(OfflineComputerGameScreen),
             '../../../build/compact-layout/practice-feedback-${profile.name}-$textScale',
           );
+          checkLayout(commentVisible: true);
           await tester.longPress(find.text("Good move, but there's better"));
           await tester.pumpAndSettle();
           expect(find.text("Good move, but there's better", findRichText: true), findsNWidgets(2));
