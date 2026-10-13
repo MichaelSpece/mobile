@@ -586,20 +586,20 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
   }
 }
 
-enum _PortraitSlot { moves, top, board, bottom, actions }
+enum _PortraitSlot() {
+  moves,
+  top,
+  board,
+  bottom,
+  actions,
+}
 
 /// Measures the tables first so enlarged text takes space from the board, not other controls.
-class _PortraitLayoutDelegate extends MultiChildLayoutDelegate {
-  _PortraitLayoutDelegate({
-    required this.maxBoardSize,
-    required this.topTableFlex,
-    required this.bottomTableFlex,
-  });
-
-  final double maxBoardSize;
-  final int topTableFlex;
-  final int bottomTableFlex;
-
+class _PortraitLayoutDelegate({
+  required final double maxBoardSize,
+  required final int topTableFlex,
+  required final int bottomTableFlex,
+}) extends MultiChildLayoutDelegate {
   @override
   void performLayout(Size size) {
     final tableConstraints = BoxConstraints.tightFor(width: size.width);
