@@ -84,6 +84,7 @@ void main() {
       factor: 1.0,
       expandedHeights: (110.0, 150.0),
       initialBoardWidth: 290.0,
+      landscapeBoardWidth: 305.2307692307692,
     ),
     (
       name: 'tablet',
@@ -91,6 +92,7 @@ void main() {
       factor: 0.7,
       expandedHeights: (210.0, 250.0),
       initialBoardWidth: 618.0,
+      landscapeBoardWidth: 623.304347826087,
     ),
   ]) {
     for (final upsideDown in [false, true]) {
@@ -161,7 +163,7 @@ void main() {
             );
             final board = tester.getRect(find.byType(Chessboard));
             expect(board.width, greaterThan(0));
-            expect(board.width, board.height);
+            expect(board.width, moreOrLessEquals(board.height));
             final menus = find.byType(PocketsMenu);
             expect(menus, findsNWidgets(2));
             final squareSize = board.width / 8 * profile.factor;
@@ -175,6 +177,12 @@ void main() {
               final size = tester.getSize(find.byWidget(element.widget));
               expect(size.width, moreOrLessEquals(squareSize));
               expect(size.height, moreOrLessEquals(squareSize));
+              final rect = tester.getRect(find.byWidget(element.widget));
+              final menu = tester.getRect(
+                find.ancestor(of: find.byWidget(element.widget), matching: menus),
+              );
+              expect(rect.left, greaterThanOrEqualTo(menu.left - 0.001));
+              expect(rect.right, lessThanOrEqualTo(menu.right + 0.001));
             }
             if (portrait) {
               final topPockets = tester.getRect(menus.at(0));
@@ -257,6 +265,10 @@ void main() {
             physicalViewPadding: EdgeInsets.zero,
           );
           checkLayout(portrait: false);
+          expect(
+            tester.getSize(find.byType(Chessboard)).width,
+            moreOrLessEquals(profile.landscapeBoardWidth),
+          );
           await expectLayoutGolden(find.byType(GameLayout), '$capturePath-landscape');
           await resizeTestSurface(tester, profile.surface, physicalViewPadding: EdgeInsets.zero);
           checkLayout();

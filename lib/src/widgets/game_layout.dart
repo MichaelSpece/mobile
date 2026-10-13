@@ -444,12 +444,26 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
         );
 
         if (orientation == Orientation.landscape) {
+          const boardTableGap = 16.0;
           final defaultBoardSize =
               constraints.biggest.shortestSide - (kTabletBoardTableSidePadding * 2);
           final sideWidth = constraints.biggest.longestSide - defaultBoardSize;
-          final boardSize = sideWidth >= 250
+          final maxBoardSize = sideWidth >= 250
               ? defaultBoardSize
               : constraints.biggest.longestSide / kGoldenRatio - (kTabletBoardTableSidePadding * 2);
+          // The side panel must fit every pocket at the board's piece scale, including its padding.
+          final pocketWidthRatio =
+              (Role.values.length - 1) * pocketSquareSize(boardSize: 1, isTablet: isTablet);
+          final boardSize = pockets == null
+              ? maxBoardSize
+              : math.min(
+                  maxBoardSize,
+                  (constraints.maxWidth -
+                          kTabletBoardTableSidePadding * 2 -
+                          boardTableGap -
+                          PocketsMenu.padding.horizontal) /
+                      (1 + pocketWidthRatio),
+                );
 
           return Padding(
             padding: const EdgeInsets.all(kTabletBoardTableSidePadding),
@@ -471,7 +485,7 @@ class _GameLayoutState() extends ConsumerState<GameLayout> {
                   boardOverlay: widget.boardOverlay,
                   error: widget.errorMessage,
                 ),
-                const SizedBox(width: 16.0),
+                const SizedBox(width: boardTableGap),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
