@@ -196,7 +196,7 @@ void main() {
         expect(scroll.maxScrollExtent, 0);
         expect(tester.getRect(find.byType(Chessboard)), board);
         expect(tester.takeException(), isNull);
-      });
+      }, variant: kPlatformVariant);
     }
   }
 
