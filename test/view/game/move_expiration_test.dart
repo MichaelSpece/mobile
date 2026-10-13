@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:dartchess/dartchess.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/game/game_socket_events.dart';
@@ -9,6 +8,7 @@ import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
 import 'package:lichess_mobile/src/service/sound_service.dart';
 import 'package:lichess_mobile/src/view/game/correspondence_clock_widget.dart';
 import 'package:lichess_mobile/src/view/game/game_player.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../model/game/game_socket_example_data.dart';
@@ -39,24 +39,26 @@ void main() {
           final flutterTestOnError = FlutterError.onError!;
           final app = await makeTestProviderScopeApp(
             tester,
-            home: ListenableBuilder(
-              listenable: narrow,
-              builder: (context, _) => MediaQuery(
-                data: MediaQuery.of(context)
-                    .copyWith(textScaler: TextScaler.linear(resize || narrow.value ? 2 : 1)),
-                child: Center(
-                  child: SizedBox(
-                    width: resize && !narrow.value ? 400 : 240,
-                    child: GamePlayer(
-                      game: game,
-                      side: Side.white,
-                      mePlaying: true,
-                      timeToMove: const Duration(seconds: 10),
-                      clockPosition: clockPosition,
-                      clock: const CorrespondenceClock(
-                        duration: Duration(minutes: 5),
-                        active: true,
-                        resetId: 0,
+            home: Scaffold(
+              body: ListenableBuilder(
+                listenable: narrow,
+                builder: (context, _) => MediaQuery(
+                  data: MediaQuery.of(context)
+                      .copyWith(textScaler: TextScaler.linear(resize || narrow.value ? 2 : 1)),
+                  child: Center(
+                    child: SizedBox(
+                      width: resize && !narrow.value ? 400 : 240,
+                      child: GamePlayer(
+                        game: game,
+                        side: Side.white,
+                        mePlaying: true,
+                        timeToMove: const Duration(seconds: 10),
+                        clockPosition: clockPosition,
+                        clock: const CorrespondenceClock(
+                          duration: Duration(minutes: 5),
+                          active: true,
+                          resetId: 0,
+                        ),
                       ),
                     ),
                   ),
