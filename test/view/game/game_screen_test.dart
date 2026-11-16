@@ -148,6 +148,7 @@ void main() {
           devicePixelRatio: 1,
           child: MaterialApp(
             locale: locale,
+            theme: ThemeData(fontFamilyFallback: kLayoutGoldenFontFallback),
             supportedLocales: AppLocalizations.supportedLocales,
             localizationsDelegates: const [
               AppLocalizations.delegate,
