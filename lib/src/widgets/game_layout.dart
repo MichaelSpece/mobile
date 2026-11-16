@@ -780,6 +780,8 @@ enum _PortraitSlot() {
   actions,
 }
 
+// Like LayoutId, this derives a ValueKey from the slot and cannot be const.
+// ignore: prefer_const_constructors_in_immutables
 class _PortraitChild({required final _PortraitSlot id, required super.child})
     extends ParentDataWidget<_PortraitParentData> {
   this : super(key: ValueKey(id));
