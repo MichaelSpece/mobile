@@ -71,10 +71,13 @@ class const GamePlayer({
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (!zenMode)
-          Row(
-            mainAxisAlignment: clockPosition == ClockPosition.right
-                ? MainAxisAlignment.start
-                : MainAxisAlignment.end,
+          Wrap(
+            alignment: clockPosition == ClockPosition.right
+                ? WrapAlignment.start
+                : WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 5,
+            runSpacing: 4,
             children: [
               if (matchupScore != null) ...[
                 Container(
@@ -92,11 +95,10 @@ class const GamePlayer({
                     ),
                   ),
                 ),
-                const SizedBox(width: 5),
               ],
               if (tournament?.ranks != null)
                 Text(
-                  '#${side == Side.white ? tournament?.ranks?.white : tournament?.ranks?.black} ',
+                  '#${side == Side.white ? tournament?.ranks?.white : tournament?.ranks?.black}',
                   style: TextStyle(fontSize: playerFontSize, color: textShade(context, 0.7)),
                 ),
               if (player.user != null) ...[
@@ -117,10 +119,8 @@ class const GamePlayer({
                   },
                 ),
               ],
-              const SizedBox(width: 5),
               if (player.user?.isPatron == true) ...[
                 PatronIcon(size: playerFontSize, color: player.user?.patronColor),
-                const SizedBox(width: 5),
               ],
               if (player.user?.title != null) ...[
                 Text(
@@ -133,20 +133,17 @@ class const GamePlayer({
                         : context.lichessColors.brag,
                   ),
                 ),
-                const SizedBox(width: 5),
               ],
-              Flexible(
-                child: Tooltip(
-                  message: player.displayName(context.l10n),
-                  child: Text(
-                    player.displayName(context.l10n),
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: playerFontSize, fontWeight: FontWeight.w600),
-                  ),
+              Tooltip(
+                message: player.displayName(context.l10n),
+                child: Text(
+                  player.displayName(context.l10n),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: playerFontSize, fontWeight: FontWeight.w600),
                 ),
               ),
               if (player.user?.flair != null) ...[
-                const SizedBox(width: 5),
                 HttpNetworkImageWidget(
                   lichessFlairSrc(player.user!.flair!),
                   errorBuilder: (_, _, _) => kEmptyWidget,
@@ -159,7 +156,7 @@ class const GamePlayer({
                   isActiveGameOfCurrentUser: game.me != null && !game.finished && !game.aborted,
                   child: Text.rich(
                     TextSpan(
-                      text: ' ${player.rating}${player.provisional == true ? '?' : ''}',
+                      text: '${player.rating}${player.provisional == true ? '?' : ''}',
                       children: [
                         if (player.ratingDiff != null)
                           TextSpan(
@@ -179,7 +176,6 @@ class const GamePlayer({
                   ),
                 ),
               if (player.berserk == true) ...[
-                const SizedBox(width: 5),
                 Icon(
                   LichessIcons.body_cut,
                   color: LichessColors.brag,

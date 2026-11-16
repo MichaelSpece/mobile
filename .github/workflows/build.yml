@@ -116,7 +116,7 @@ jobs:
             test/view/game/game_screen_test.dart \
             test/view/offline_computer/offline_computer_game_screen_test.dart \
             test/view/over_the_board/over_the_board_screen_test.dart \
-            --name 'compact post-startup|compact active game survives rotation|adaptive crazyhouse pockets' \
+            --name 'compact|adaptive crazyhouse pockets' \
             2>&1 | tee build/validation/renders.log
 
       - name: Full suite for shared test surface
