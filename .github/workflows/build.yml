@@ -3,6 +3,10 @@ name: Compact layout validation (fork-only)
 on:
   workflow_dispatch:
     inputs:
+      regression_control:
+        description: Confirm the position-only relayout test fails on the reviewed baseline
+        type: boolean
+        default: false
       render_layouts:
         description: Render compact layouts for visual inspection
         type: boolean
@@ -33,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      SOURCE_SHA: 77af629d6754ae74b0ccb95698c887282a3b4abc
+      SOURCE_SHA: 0e2f87ce91194b8d289addecedfb504b2746f78c
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -95,6 +99,24 @@ jobs:
             test/view/watch/tv_screen_test.dart \
             2>&1 | tee build/validation/focused.log
 
+      - name: Confirm regression control
+        if: ${{ success() && inputs.regression_control }}
+        run: |
+          file=lib/src/widgets/game_layout.dart
+          trap 'git restore --source="$SOURCE_SHA" -- "$file"' EXIT
+          git restore --source=77af629d6754ae74b0ccb95698c887282a3b4abc -- "$file"
+          set +e
+          flutter test --no-pub --concurrency=1 --reporter=expanded \
+            test/widgets/android_gesture_exclusion_test.dart \
+            --plain-name 'refreshes edge protection when only a player table relayouts' \
+            2>&1 | tee build/validation/regression-control.log
+          result=${PIPESTATUS[0]}
+          set -e
+          git restore --source="$SOURCE_SHA" -- "$file"
+          test "$result" -eq 1
+          grep -F 'A position-only table relayout must refresh native rectangles.' build/validation/regression-control.log
+          git diff --exit-code "$SOURCE_SHA" -- "$file"
+
       - name: Render requested layouts
         if: ${{ !cancelled() && steps.focused.outcome == 'success' && inputs.render_layouts }}
         run: |
@@ -102,10 +124,11 @@ jobs:
             --dart-define=LAYOUT_GOLDENS=true --update-goldens \
             test/widgets/game_layout_test.dart test/view/game/game_player_test.dart \
             test/widgets/bottom_bar_test.dart \
+            test/widgets/android_gesture_exclusion_test.dart \
             test/view/game/game_screen_test.dart \
             test/view/offline_computer/offline_computer_game_screen_test.dart \
             test/view/over_the_board/over_the_board_screen_test.dart \
-            --name 'compact|adaptive crazyhouse pockets' \
+            --name 'compact|adaptive crazyhouse pockets|only a player table relayouts' \
             2>&1 | tee build/validation/renders.log
 
       - name: Full suite
