@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      SOURCE_SHA: 4ac445a61a19fa9e8d05c880cd91321a61f3563e
+      SOURCE_SHA: 295bf71973ab91855ae757f20e24333bd15387ce
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
