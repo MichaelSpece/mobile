@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      SOURCE_SHA: 4993275fb7818acae2c1348cdfa166b96325a69d
+      SOURCE_SHA: 4ac445a61a19fa9e8d05c880cd91321a61f3563e
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -86,6 +86,7 @@ jobs:
             test/test_helpers_test.dart \
             test/widgets/game_layout_test.dart test/widgets/clock_test.dart \
             test/widgets/android_gesture_exclusion_test.dart test/widgets/board_test.dart \
+            test/widgets/bottom_bar_test.dart \
             test/view/game/game_player_test.dart test/view/game/game_screen_test.dart \
             test/view/game/move_expiration_test.dart \
             test/view/correspondence/offline_correspondence_game_screen_test.dart \
@@ -100,6 +101,7 @@ jobs:
           flutter test --no-pub --concurrency=1 --reporter=expanded \
             --dart-define=LAYOUT_GOLDENS=true --update-goldens \
             test/widgets/game_layout_test.dart test/view/game/game_player_test.dart \
+            test/widgets/bottom_bar_test.dart \
             test/view/game/game_screen_test.dart \
             test/view/offline_computer/offline_computer_game_screen_test.dart \
             test/view/over_the_board/over_the_board_screen_test.dart \
