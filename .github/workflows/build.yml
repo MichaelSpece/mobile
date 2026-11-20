@@ -1,129 +1,127 @@
-name: Builds
+name: Compact layout validation (fork-only)
 
-# Manual runs build everything. Automated runs only build the platforms whose native code changed;
-# a pubspec change can bump a plugin's native code, so it builds both.
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'android/**'
-      - 'ios/**'
-      - 'pubspec.yaml'
-      - '.github/workflows/build.yml'
-    branches:
-      - main
-  pull_request:
-    paths:
-      - 'android/**'
-      - 'ios/**'
-      - 'pubspec.yaml'
-      - '.github/workflows/build.yml'
-    branches:
-      - main
+    inputs:
+      render_layouts:
+        description: Render compact layouts for visual inspection
+        type: boolean
+        default: false
+      full_suite:
+        description: Run the full suite after the focused tests
+        type: boolean
+        default: false
+      compile_apk:
+        description: Compile a debug APK after the tests
+        type: boolean
+        default: false
 
-# Cancel superseded PR runs so only the latest pushed commit is actually built.
-# Pushes to main are never cancelled.
+permissions:
+  contents: read
+
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: compact-public-validation-${{ github.ref }}
+  cancel-in-progress: false
 
-# Declare default permissions as read only.
-permissions: read-all
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  changes:
-    name: Select builds
+  validate:
+    if: github.repository == 'MichaelSpece/mobile' && github.ref == 'refs/heads/codex/compact-public-validation-20261120'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
+    timeout-minutes: 45
+    env:
+      SOURCE_SHA: f19416c163e4dc19a77396fd71ac4b3cd711d370
     steps:
-      # paths-filter diffs with git on push events, so it needs the repository.
-      - name: Checkout mobile code
-        if: github.event_name == 'push'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Detect native changes
-        id: filter
-        if: github.event_name != 'workflow_dispatch'
-        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          filters: |
-            android:
-              - 'android/**'
-              - 'pubspec.yaml'
-              - 'pubspec.lock'
-              - '.github/workflows/build.yml'
-            ios:
-              - 'ios/**'
-              - 'pubspec.yaml'
-              - 'pubspec.lock'
-              - '.github/workflows/build.yml'
+          fetch-depth: 0
 
-      # The debug APK is only built on manual runs, to be uploaded: the app bundle already checks
-      # that the Android build compiles.
-      - name: Build matrix
-        id: matrix
-        env:
-          MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
-          ANDROID: ${{ steps.filter.outputs.android == 'true' }}
-          IOS: ${{ steps.filter.outputs.ios == 'true' }}
+      - name: Verify candidate source
         run: |
-          include='[]'
-          if [ "$MANUAL" = true ] || [ "$ANDROID" = true ]; then
-            include=$(jq -c '. + [{"target": "appbundle --debug", "os": "ubuntu-latest"}]' <<< "$include")
-          fi
-          if [ "$MANUAL" = true ] || [ "$IOS" = true ]; then
-            include=$(jq -c '. + [{"target": "ios --no-codesign", "os": "macos-26"}]' <<< "$include")
-          fi
-          if [ "$MANUAL" = true ]; then
-            include=$(jq -c '. + [{"target": "apk --debug", "os": "ubuntu-latest"}]' <<< "$include")
-          fi
-          echo "matrix={\"include\":$include}" >> "$GITHUB_OUTPUT"
+          git diff --exit-code "$SOURCE_SHA" -- . ':!.github/workflows/build.yml'
+          mkdir -p build/validation
+          git rev-parse "$SOURCE_SHA" | tee build/validation/revision.txt
 
-  build:
-    name: Build ${{ matrix.target }}
-    needs: changes
-    if: needs.changes.outputs.matrix != '{"include":[]}'
-    runs-on: ${{ matrix.os }}
-    # A native build that hangs should fail fast rather than hold a runner.
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
-    steps:
-      # The Gradle cache is keyed on the Gradle files, so the code must be checked out first.
-      - name: Checkout mobile code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set up JDK 17
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        if: inputs.compile_apk
         with:
           java-version: 17
           distribution: temurin
-          cache: gradle
 
-      - name: Install Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
-        with:
-          cache: true
-          flutter-version-file: pubspec.yaml
-      - run: flutter doctor -v
+      - name: Install pinned Flutter
+        run: |
+          git clone --depth=1 --branch=3.50.0 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = ab2912035e160d9cad6306df307576da6128ebdb
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/flutter/bin/flutter" --version | tee build/validation/flutter.txt
+
+      - name: Install SQLite
+        run: sudo apt-get -y install libsqlite3-0 libsqlite3-dev
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Code generation
+      - name: Generate code
+        id: generate
         run: dart run build_runner build
 
-      - run: flutter build ${{ matrix.target }}
+      - name: Check formatting
+        run: |
+          mapfile -t files < <(git diff --name-only 7b32d80f7f7f662a59f57697c8d85c2540ea9ba8 "$SOURCE_SHA" -- '*.dart')
+          dart format --output=none --set-exit-if-changed "${files[@]}"
 
-      - name: Upload debug APK
-        if: github.event_name == 'workflow_dispatch' && matrix.target == 'apk --debug'
+      - name: Analyze
+        id: analyze
+        if: ${{ !cancelled() && steps.generate.outcome == 'success' }}
+        run: flutter analyze --no-pub 2>&1 | tee build/validation/analyze.log
+
+      - name: Focused tests
+        id: focused
+        if: ${{ !cancelled() && steps.analyze.outcome == 'success' }}
+        run: |
+          flutter test --no-pub --concurrency=1 --reporter=expanded \
+            test/test_helpers_test.dart \
+            test/widgets/game_layout_test.dart test/widgets/clock_test.dart \
+            test/view/game/game_player_test.dart test/view/game/game_screen_test.dart \
+            test/view/game/move_expiration_test.dart \
+            test/view/correspondence/offline_correspondence_game_screen_test.dart \
+            test/view/offline_computer/offline_computer_game_screen_test.dart \
+            test/view/over_the_board/over_the_board_screen_test.dart \
+            test/view/watch/tv_screen_test.dart \
+            2>&1 | tee build/validation/focused.log
+
+      - name: Render requested layouts
+        if: ${{ !cancelled() && steps.focused.outcome == 'success' && inputs.render_layouts }}
+        run: |
+          flutter test --no-pub --concurrency=1 --reporter=expanded \
+            --dart-define=LAYOUT_GOLDENS=true --update-goldens \
+            test/widgets/game_layout_test.dart test/view/game/game_player_test.dart \
+            test/view/game/game_screen_test.dart \
+            test/view/offline_computer/offline_computer_game_screen_test.dart \
+            test/view/over_the_board/over_the_board_screen_test.dart \
+            --name 'compact|adaptive crazyhouse pockets' \
+            2>&1 | tee build/validation/renders.log
+
+      - name: Full suite
+        if: ${{ success() && inputs.full_suite }}
+        run: flutter test --no-pub --concurrency=1 --reporter=expanded 2>&1 | tee build/validation/full-suite.log
+
+      - name: Compile debug APK
+        if: ${{ success() && inputs.compile_apk }}
+        run: |
+          flutter build apk --debug --no-pub 2>&1 | tee build/validation/compile.log
+          sha256sum build/app/outputs/flutter-apk/app-debug.apk > build/validation/apk.sha256
+
+      - name: Retain verification evidence
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: lichess-mobile-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: compact-layout-${{ github.sha }}
+          path: |
+            build/validation/
+            build/compact-layout/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
