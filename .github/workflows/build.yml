@@ -3,6 +3,10 @@ name: Compact layout validation (fork-only)
 on:
   workflow_dispatch:
     inputs:
+      border_regression_control:
+        description: Confirm the border-height test fails on the reviewed baseline
+        type: boolean
+        default: false
       regression_control:
         description: Confirm the position-only relayout test fails on the reviewed baseline
         type: boolean
@@ -37,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      SOURCE_SHA: 0e2f87ce91194b8d289addecedfb504b2746f78c
+      SOURCE_SHA: db6071dc274e1d7931317471111c067de29d9124
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -130,6 +134,24 @@ jobs:
             test/view/over_the_board/over_the_board_screen_test.dart \
             --name 'compact|adaptive crazyhouse pockets|only a player table relayouts' \
             2>&1 | tee build/validation/renders.log
+
+      - name: Confirm border regression control
+        if: ${{ success() && inputs.border_regression_control }}
+        run: |
+          file=lib/src/widgets/game_layout.dart
+          trap 'git restore --source="$SOURCE_SHA" -- "$file"' EXIT
+          git restore --source=0e2f87ce91194b8d289addecedfb504b2746f78c -- "$file"
+          set +e
+          flutter test --no-pub --concurrency=1 --reporter=expanded \
+            test/widgets/game_layout_test.dart \
+            --plain-name 'compact portrait exhausted height keeps controls reachable pockets=false border=true' \
+            2>&1 | tee build/validation/border-regression-control.log
+          result=${PIPESTATUS[0]}
+          set -e
+          git restore --source="$SOURCE_SHA" -- "$file"
+          test "$result" -eq 1
+          grep -F 'BoxConstraints has a negative minimum width' build/validation/border-regression-control.log
+          git diff --exit-code "$SOURCE_SHA" -- "$file"
 
       - name: Full suite
         if: ${{ success() && inputs.full_suite }}
