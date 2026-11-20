@@ -150,7 +150,8 @@ jobs:
           set -e
           git restore --source="$SOURCE_SHA" -- "$file"
           test "$result" -eq 1
-          grep -F 'BoxConstraints has a negative minimum width' build/validation/border-regression-control.log
+          grep -F 'The playable grid must have positive size.' build/validation/border-regression-control.log
+          grep -F 'Actual: <-16.0>' build/validation/border-regression-control.log
           git diff --exit-code "$SOURCE_SHA" -- "$file"
 
       - name: Full suite
